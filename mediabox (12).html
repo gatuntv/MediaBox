@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Media Box – Reproductor Privado</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #08090d; --card: #13161f; --border: rgba(255,255,255,0.07);
+      --blue: #3b82f6; --blue-glow: rgba(59,130,246,0.18); --text: #e8eaf0; --muted: #6b7280;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+    svg { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+    #device-banner { background: rgba(59,130,246,0.08); border-bottom: 1px solid rgba(59,130,246,0.15); padding: 10px 24px; text-align: center; font-size: 0.82rem; color: var(--blue); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(8,9,13,0.90); backdrop-filter: blur(16px); z-index: 100; }
+    .logo { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; text-decoration: none; color: var(--text); }
+    .logo span { color: var(--blue); }
+    nav ul { display: flex; gap: 28px; list-style: none; align-items: center; }
+    nav ul a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color .2s; }
+    nav ul a:hover { color: var(--text); }
+    .menu-btn { display: none; background: none; border: none; color: var(--text); cursor: pointer; padding: 4px; }
+    .mobile-menu { display: none; flex-direction: column; background: var(--card); border-bottom: 1px solid var(--border); }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a { padding: 14px 24px; color: var(--muted); text-decoration: none; font-size: 0.95rem; border-bottom: 1px solid var(--border); transition: color .2s; }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: var(--text); }
+    .lang-switcher { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .lang-btn { background: transparent; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 700; padding: 5px 11px; cursor: pointer; transition: all .2s; letter-spacing: 0.05em; }
+    .lang-btn.active { background: var(--blue); color: #fff; }
+    .lang-btn:hover:not(.active) { color: var(--text); }
+    .mobile-lang { display: flex; align-items: center; gap: 10px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
+    .mobile-lang span { font-size: 0.8rem; color: var(--muted); }
+    .mobile-lang .lang-switcher { margin-left: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 0 20px var(--blue-glow); }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: rgba(255,255,255,0.22); }
+    .hero { max-width: 860px; margin: 0 auto; padding: 90px 24px 70px; text-align: center; position: relative; }
+    .hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse at center, rgba(59,130,246,0.11) 0%, transparent 70%); pointer-events: none; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 999px; padding: 6px 14px; font-size: 0.78rem; color: var(--blue); margin-bottom: 28px; font-weight: 500; }
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 18px; }
+    h1 span { color: var(--blue); }
+    .hero p { color: var(--muted); font-size: 1.05rem; line-height: 1.7; max-width: 500px; margin: 0 auto 36px; }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .stats { display: flex; max-width: 680px; margin: 56px auto 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--card); }
+    .stat { flex: 1; padding: 22px 16px; text-align: center; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-num { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; }
+    .stat-label { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+    .features { max-width: 900px; margin: 80px auto; padding: 0 24px; }
+    .section-title { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; text-align: center; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .section-sub { text-align: center; color: var(--muted); margin-bottom: 38px; font-size: 0.93rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 20px; transition: border-color .2s, transform .2s; }
+    .feature-card:hover { border-color: rgba(59,130,246,0.28); transform: translateY(-3px); }
+    .feat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    .feat-icon.blue { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .feat-icon.purple { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+    .feat-icon.green { background: rgba(34,197,94,0.12); color: #22c55e; }
+    .feat-icon.amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .feat-icon svg { width: 20px; height: 20px; }
+    .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .feature-card p { font-size: 0.84rem; color: var(--muted); line-height: 1.6; }
+    .downloads { max-width: 960px; margin: 0 auto 80px; padding: 0 24px; }
+    .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 14px; }
+    .platform-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 16px 22px; text-align: center; transition: border-color .2s, transform .2s; position: relative; }
+    .platform-card:hover { border-color: rgba(59,130,246,0.28); transform: translateY(-3px); }
+    .platform-card.detected { border-color: rgba(59,130,246,0.5); }
+    .detected-label { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.67rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; letter-spacing: 0.05em; text-transform: uppercase; }
+    .platform-icon { width: 56px; height: 56px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
+    .platform-card h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .platform-ver { font-size: 0.74rem; color: var(--blue); margin-bottom: 14px; }
+    .platform-card .btn { width: 100%; justify-content: center; font-size: 0.81rem; padding: 9px 12px; margin-bottom: 6px; }
+    .platform-card .btn svg { width: 13px; height: 13px; }
+    .platform-req { font-size: 0.71rem; color: var(--muted); margin-top: 10px; line-height: 1.55; }
+    .instructions { max-width: 960px; margin: 0 auto 80px; padding: 0 24px; }
+    .inst-tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 36px; flex-wrap: wrap; }
+    .inst-tab { padding: 10px 28px; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+    .inst-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 0 20px var(--blue-glow); }
+    .inst-tab:hover:not(.active) { border-color: rgba(255,255,255,0.22); color: var(--text); }
+    .inst-panel { display: none; }
+    .inst-panel.active { display: block; }
+    .inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .inst-step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 20px; display: flex; gap: 16px; align-items: flex-start; transition: border-color .2s, transform .2s; }
+    .inst-step:hover { border-color: rgba(59,130,246,0.28); transform: translateY(-2px); }
+    .inst-num { min-width: 34px; height: 34px; border-radius: 50%; background: rgba(59,130,246,0.12); color: var(--blue); font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; }
+    .inst-step h4 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 5px; }
+    .inst-step p { font-size: 0.83rem; color: var(--muted); line-height: 1.6; }
+    .inst-note { margin-top: 20px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: 12px; padding: 14px 18px; font-size: 0.83rem; color: var(--muted); display: flex; gap: 10px; align-items: flex-start; }
+    .inst-note svg { flex-shrink: 0; color: var(--blue); margin-top: 1px; }
+    footer { border-top: 1px solid var(--border); padding: 26px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    footer p { font-size: 0.82rem; color: var(--muted); }
+    footer a { color: var(--blue); text-decoration: none; font-size: 0.82rem; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+    .hero > * { animation: fadeUp .5s ease both; }
+    .hero .badge { animation-delay: .05s; } .hero h1 { animation-delay: .12s; } .hero p { animation-delay: .19s; } .hero-btns { animation-delay: .26s; } .stats { animation-delay: .33s; }
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      nav ul, nav .btn { display: none; }
+      .menu-btn { display: flex; }
+      h1 { font-size: 2rem; }
+      .stats { flex-wrap: wrap; }
+      .stat { flex: 1 1 45%; border-right: none; border-bottom: 1px solid var(--border); }
+      .stat:nth-child(odd) { border-right: 1px solid var(--border); }
+      .stat:nth-child(3), .stat:nth-child(4) { border-bottom: none; }
+      footer { flex-direction: column; text-align: center; padding: 20px; }
+    }
+    /* ── Stars ── */
+    .star { font-size: 2.4rem; cursor: pointer; color: #374151; transition: color .15s, transform .15s; line-height: 1; user-select: none; }
+    .star:hover, .star.hov, .star.filled { color: #f59e0b; }
+    .star:hover { transform: scale(1.18); }
+    .star.filled { text-shadow: 0 0 12px rgba(245,158,11,0.4); }
+    #stat-rating-box:hover .stat-num { color: var(--blue); }
+    .stat-rating { transition: opacity .2s; }
+  </style>
+</head>
+<body>
+
+<div id="device-banner">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  <span id="banner-text">Detectando tu dispositivo...</span>
+</div>
+
+<nav>
+  <a href="#" class="logo">Media<span>Box</span></a>
+  <ul>
+    <li><a href="#caracteristicas" data-es="Características" data-en="Features" onclick="smoothScroll(event,'caracteristicas')">Características</a></li>
+    <li><a href="#descargas" data-es="Descargas" data-en="Downloads" onclick="smoothScroll(event,'descargas')">Descargas</a></li>
+    <li><a href="#instrucciones" data-es="Instrucciones" data-en="Instructions" onclick="smoothScroll(event,'instrucciones')">Instrucciones</a></li>
+    <li><a href="#" data-es="Contacto" data-en="Contact" onclick="copyContact(event)">Contacto</a></li>
+    <li>
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLang('es')">ES</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+      </div>
+    </li>
+  </ul>
+  <button class="menu-btn" id="menu-toggle" aria-label="Menu">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <a href="#descargas" class="btn btn-primary" data-es="Descargar" data-en="Download" data-btn="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span class="btn-label">Descargar</span>
+  </a>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-lang">
+    <span>Idioma / Language:</span>
+    <div class="lang-switcher">
+      <button class="lang-btn active" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+  <a href="#caracteristicas" data-es="Características" data-en="Features" onclick="closeMobileMenu();smoothScroll(event,'caracteristicas')">Características</a>
+  <a href="#descargas" data-es="Descargas" data-en="Downloads" onclick="closeMobileMenu();smoothScroll(event,'descargas')">Descargas</a>
+  <a href="#instrucciones" data-es="Instrucciones" data-en="Instructions" onclick="closeMobileMenu();smoothScroll(event,'instrucciones')">Instrucciones</a>
+  <a href="#" data-es="Contacto" data-en="Contact" onclick="copyContact(event)">Contacto</a>
+</div>
+
+<section class="hero">
+  <div class="badge">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span data-es="100% Privado · Sin Anuncios · Tu contenido, tu control" data-en="100% Private · No Ads · Your content, your control">100% Privado · Sin Anuncios · Tu contenido, tu control</span>
+  </div>
+  <h1><span data-es="Reproduce tu contenido con " data-en="Play your content with ">Reproduce tu contenido con </span><span style="color:var(--blue)" data-es="total privacidad" data-en="total privacy">total privacidad</span></h1>
+  <p data-es="Media Box es tu reproductor personal de video y audio. Sin rastreos, sin anuncios, sin compromisos. Solo tú y tu contenido." data-en="Media Box is your personal video and audio player. No tracking, no ads, no compromises. Just you and your content.">Media Box es tu reproductor personal de video y audio. Sin rastreos, sin anuncios, sin compromisos. Solo tú y tu contenido.</p>
+  <div class="hero-btns">
+    <a href="#descargas" onclick="smoothScroll(event,'descargas')" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span data-es="Descargar Ahora" data-en="Download Now">Descargar Ahora</span>
+    </a>
+    <a href="#caracteristicas" onclick="smoothScroll(event,'caracteristicas')" class="btn btn-outline">
+      <span data-es="Ver características" data-en="See features">Ver características</span>
+    </a>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="stat-downloads">—</div><div class="stat-label" data-es="Descargas" data-en="Downloads">Descargas</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label" data-es="Anuncios" data-en="Ads">Anuncios</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label" data-es="Privado" data-en="Private">Privado</div></div>
+    <div class="stat stat-rating" id="stat-rating-box" style="cursor:pointer;" onclick="document.getElementById('rating-section').scrollIntoView({behavior:'smooth',block:'center'})">
+      <div class="stat-num" id="stat-rating">?/?</div>
+      <div class="stat-label" data-es="Valoración" data-en="Rating">Valoración</div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="caracteristicas">
+  <div class="section-title" data-es="Todo lo que necesitas" data-en="Everything you need">Todo lo que necesitas</div>
+  <div class="section-sub" data-es="Simple, rápido y sin distracciones." data-en="Simple, fast and distraction-free.">Simple, rápido y sin distracciones.</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+      <h3 data-es="Privacidad Total" data-en="Total Privacy">Privacidad Total</h3>
+      <p data-es="Tus archivos nunca salen de tu dispositivo. Sin rastreo, sin nube." data-en="Your files never leave your device. No tracking, no cloud.">Tus archivos nunca salen de tu dispositivo. Sin rastreo, sin nube.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+      <h3 data-es="Sin Anuncios" data-en="No Ads">Sin Anuncios</h3>
+      <p data-es="Disfruta tu contenido sin interrupciones. Para siempre." data-en="Enjoy your content without interruptions. Forever.">Disfruta tu contenido sin interrupciones. Para siempre.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div>
+      <h3 data-es="Organización Fácil" data-en="Easy Organization">Organización Fácil</h3>
+      <p data-es="Gestiona tu biblioteca de videos y música con facilidad." data-en="Manage your video and music library with ease.">Gestiona tu biblioteca de videos y música con facilidad.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
+      <h3 data-es="Soporta Todo" data-en="Supports Everything">Soporta Todo</h3>
+      <p data-es="Compatible con los formatos de video y audio más populares." data-en="Compatible with the most popular video and audio formats.">Compatible con los formatos de video y audio más populares.</p>
+    </div>
+  </div>
+</section>
+
+<section class="downloads" id="descargas">
+  <div class="section-title" data-es="Descarga Media Box" data-en="Download Media Box">Descarga Media Box</div>
+  <div class="section-sub" data-es="Elige tu plataforma y empieza hoy." data-en="Choose your platform and start today.">Elige tu plataforma y empieza hoy.</div>
+  <div class="platform-grid">
+
+    <div class="platform-card" id="card-windows">
+      <div class="platform-icon"><img src="https://cdn-icons-png.flaticon.com/128/25/25412.png" width="52" height="52" style="object-fit:contain;"></div>
+      <h3>Windows</h3>
+      <div class="platform-ver">v1.2.0</div>
+      <a href="#" class="btn btn-primary dl-btn" data-platform="windows-installer" data-url="#" onclick="handleDownload(event,this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-es="Instalador" data-en="Installer">Instalador</span>
+      </a>
+      <a href="#" class="btn btn-outline dl-btn" data-platform="windows-portable" data-url="#" onclick="handleDownload(event,this)"><span data-es="Portable" data-en="Portable">Portable</span></a>
+      <div class="platform-req">Windows 10 / 11 · 4 GB RAM</div>
+    </div>
+
+    <div class="platform-card" id="card-linux" style="opacity:0.5;pointer-events:none;">
+      <div class="platform-icon"><img src="https://cdn-icons-png.flaticon.com/128/25/25719.png" width="52" height="52" style="object-fit:contain;"></div>
+      <h3>Linux</h3>
+      <div class="platform-ver">v1.2.0</div>
+      <p style="font-size:0.82rem;color:#6b7280;margin:14px 0;" data-es="No disponible" data-en="Not available">No disponible</p>
+      <div class="platform-req">Ubuntu 18.04+ / Debian 10+</div>
+    </div>
+
+    <div class="platform-card" id="card-macos" style="opacity:0.5;pointer-events:none;">
+      <div class="platform-icon"><img src="https://cdn-icons-png.flaticon.com/128/2/2235.png" width="52" height="52" style="object-fit:contain;"></div>
+      <h3>macOS</h3>
+      <div class="platform-ver">v1.2.0</div>
+      <p style="font-size:0.82rem;color:#6b7280;margin:14px 0;" data-es="No disponible" data-en="Not available">No disponible</p>
+      <div class="platform-req" data-es="macOS 11 Big Sur o superior" data-en="macOS 11 Big Sur or higher">macOS 11 Big Sur o superior</div>
+    </div>
+
+    <div class="platform-card" id="card-android">
+      <div class="platform-icon"><img src="https://cdn-icons-png.flaticon.com/128/25/25374.png" width="52" height="52" style="object-fit:contain;"></div>
+      <h3>Android</h3>
+      <div class="platform-ver">v1.2.0</div>
+      <a href="#" class="btn btn-primary dl-btn" data-platform="android-play" data-url="#" onclick="handleDownload(event,this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Google Play
+      </a>
+      <a href="#" class="btn btn-outline dl-btn" data-platform="android-apk" data-url="#" onclick="handleDownload(event,this)">APK</a>
+      <div class="platform-req">Android 7.0+ · 2 GB RAM</div>
+    </div>
+
+    <div class="platform-card" id="card-tv" style="opacity:0.5;pointer-events:none;">
+      <div class="platform-icon"><img src="https://cdn-icons-png.flaticon.com/128/1723/1723032.png" width="52" height="52" style="object-fit:contain;"></div>
+      <h3>Smart TV</h3>
+      <div class="platform-ver">v1.2.0</div>
+      <p style="font-size:0.82rem;color:#6b7280;margin:14px 0;" data-es="No disponible" data-en="Not available">No disponible</p>
+      <div class="platform-req">Android TV 7.0+ · Internet</div>
+    </div>
+
+  </div>
+</section>
+
+<section class="instructions" id="instrucciones">
+  <div class="section-title" data-es="Instrucciones" data-en="Instructions">Instrucciones</div>
+  <div class="section-sub" data-es="Sigue estos pasos para empezar en tu dispositivo." data-en="Follow these steps to get started on your device.">Sigue estos pasos para empezar en tu dispositivo.</div>
+
+  <div class="inst-tabs">
+    <button class="inst-tab active" onclick="switchTab('mobile', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      <span data-es="Celular (Android)" data-en="Mobile (Android)">Celular (Android)</span>
+    </button>
+    <button class="inst-tab" onclick="switchTab('pc', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span data-es="PC (Windows)" data-en="PC (Windows)">PC (Windows)</span>
+    </button>
+  </div>
+
+  <div class="inst-panel active" id="panel-mobile">
+    <div class="inst-grid">
+      <div class="inst-step"><div class="inst-num">1</div><div>
+        <h4 data-es="Descarga el APK" data-en="Download the APK">Descarga el APK</h4>
+        <p data-es="Ve a la sección de Descargas y toca el botón APK para Android. El archivo se descarga directo a tu celular." data-en="Go to the Downloads section and tap the APK button for Android. The file downloads directly to your phone.">Ve a la sección de Descargas y toca el botón APK para Android. El archivo se descarga directo a tu celular.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">2</div><div>
+        <h4 data-es="Instala la app" data-en="Install the app">Instala la app</h4>
+        <p data-es="Abre el APK descargado. Si te lo pide, permite la instalación desde fuentes desconocidas en los ajustes." data-en="Open the downloaded APK. If prompted, allow installation from unknown sources in your settings.">Abre el APK descargado. Si te lo pide, permite la instalación desde fuentes desconocidas en los ajustes.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">3</div><div>
+        <h4 data-es="Inicia sin iniciar sesión" data-en="Start without signing in">Inicia sin iniciar sesión</h4>
+        <p data-es='Abre Media Box y toca "Continuar sin cuenta" — el login aún no está integrado en móvil, así que entra directo.' data-en='Open Media Box and tap "Continue without account" — login is not yet integrated on mobile, so just go straight in.'>Abre Media Box y toca "Continuar sin cuenta" — el login aún no está integrado en móvil, así que entra directo.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">4</div><div>
+        <h4 data-es="Crea tu perfil" data-en="Create your profile">Crea tu perfil</h4>
+        <p data-es="Configura tu perfil local con tu nombre y preferencias. Todo queda solo en tu dispositivo." data-en="Set up your local profile with your name and preferences. Everything stays on your device only.">Configura tu perfil local con tu nombre y preferencias. Todo queda solo en tu dispositivo.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">5</div><div>
+        <h4 data-es="¡A disfrutar!" data-en="Enjoy!">¡A disfrutar!</h4>
+        <p data-es="Agrega tus videos y música y empieza a ver. Sin anuncios, sin rastreos, para siempre." data-en="Add your videos and music and start watching. No ads, no tracking, ever.">Agrega tus videos y música y empieza a ver. Sin anuncios, sin rastreos, para siempre.</p>
+      </div></div>
+    </div>
+    <div class="inst-note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span data-es="El inicio de sesión en móvil llegará pronto. Por ahora continúa sin cuenta y disfruta todas las funciones de forma local." data-en="Account login on mobile is coming soon. For now, just continue without signing in and enjoy all features locally.">El inicio de sesión en móvil llegará pronto. Por ahora continúa sin cuenta y disfruta todas las funciones de forma local.</span>
+    </div>
+  </div>
+
+  <div class="inst-panel" id="panel-pc">
+    <div class="inst-grid">
+      <div class="inst-step"><div class="inst-num">1</div><div>
+        <h4 data-es="Descarga el instalador" data-en="Download the installer">Descarga el instalador</h4>
+        <p data-es="Haz clic en el botón Instalador en la sección de Descargas para obtener el archivo de instalación." data-en="Click the Installer button in the Downloads section to get the setup file.">Haz clic en el botón Instalador en la sección de Descargas para obtener el archivo de instalación.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">2</div><div>
+        <h4 data-es="Ejecuta e instala" data-en="Run and install">Ejecuta e instala</h4>
+        <p data-es="Abre el archivo .exe descargado y sigue los pasos de instalación." data-en="Open the downloaded .exe file and follow the installation steps.">Abre el archivo <code style="background:rgba(59,130,246,0.1);padding:1px 6px;border-radius:4px;font-size:0.8rem;">.exe</code> <span data-es="descargado y sigue los pasos de instalación." data-en="and follow the installation steps.">descargado y sigue los pasos de instalación.</span></p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">3</div><div>
+        <h4 data-es="Inicia sesión" data-en="Sign in">Inicia sesión</h4>
+        <p data-es="Entra con Google, Discord o tu correo. Si usas correo, recibirás un código de verificación en tu bandeja de entrada." data-en="Log in with Google, Discord, or your email. If you use email, a verification code will be sent to your inbox.">Entra con Google, Discord o tu correo. Si usas correo, recibirás un código de verificación en tu bandeja de entrada.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">4</div><div>
+        <h4 data-es="Acepta los términos y condiciones" data-en="Accept terms & conditions">Acepta los términos y condiciones</h4>
+        <p data-es="Lee y acepta los términos de servicio para activar tu cuenta y acceder a todas las funciones." data-en="Read and accept the terms of service to activate your account and access all features.">Lee y acepta los términos de servicio para activar tu cuenta y acceder a todas las funciones.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">5</div><div>
+        <h4 data-es="Agrega tu perfil" data-en="Add your profile">Agrega tu perfil</h4>
+        <p data-es="Configura tu perfil de usuario — nombre, avatar y preferencias. Puedes agregar varios perfiles." data-en="Set up your user profile — name, avatar, and preferences. You can add multiple profiles.">Configura tu perfil de usuario — nombre, avatar y preferencias. Puedes agregar varios perfiles.</p>
+      </div></div>
+      <div class="inst-step"><div class="inst-num">6</div><div>
+        <h4 data-es="¡A disfrutar!" data-en="Enjoy!">¡A disfrutar!</h4>
+        <p data-es="Agrega tu biblioteca de medios y empieza a ver. Privado, rápido y completamente sin anuncios." data-en="Add your media library and start watching. Private, fast, and completely ad-free.">Agrega tu biblioteca de medios y empieza a ver. Privado, rápido y completamente sin anuncios.</p>
+      </div></div>
+    </div>
+    <div class="inst-note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span data-es="Tu inicio de sesión solo sirve para sincronizar tu perfil. Tus archivos de medios nunca salen de tu dispositivo, jamás." data-en="Your login is only used to sync your profile. Your media files never leave your device — ever.">Tu inicio de sesión solo sirve para sincronizar tu perfil. Tus archivos de medios nunca salen de tu dispositivo, jamás.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Rating Section ─────────────────────────────────────────── -->
+<section id="rating-section" style="max-width:520px;margin:0 auto 80px;padding:0 24px;text-align:center;">
+  <div class="section-title" data-es="¿Te gusta Media Box?" data-en="Enjoying Media Box?">¿Te gusta Media Box?</div>
+  <div class="section-sub" data-es="Deja tu valoración — ayuda a otros a descubrirlo." data-en="Leave your rating — help others discover it.">Deja tu valoración — ayuda a otros a descubrirlo.</div>
+  <div id="rating-widget" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;">
+    <div id="stars-row" style="display:flex;justify-content:center;gap:10px;margin-bottom:20px;">
+      <span class="star" data-val="1">★</span>
+      <span class="star" data-val="2">★</span>
+      <span class="star" data-val="3">★</span>
+      <span class="star" data-val="4">★</span>
+      <span class="star" data-val="5">★</span>
+    </div>
+    <div id="rating-summary" style="font-size:0.88rem;color:var(--muted);margin-bottom:18px;">
+      <span id="avg-display">—</span> &nbsp;·&nbsp; <span id="votes-display">0</span> <span data-es="votos" data-en="votes">votos</span>
+    </div>
+    <div id="rating-msg" style="font-size:0.85rem;color:var(--blue);min-height:22px;"></div>
+    <button id="rate-btn" onclick="submitRating()" class="btn btn-primary" style="margin-top:16px;width:100%;justify-content:center;display:none;" data-es="Enviar valoración" data-en="Submit rating">Enviar valoración</button>
+  </div>
+</section>
+
+<footer>
+  <p><span data-es="© 2026 " data-en="© 2026 ">© 2026 </span><strong>Media Box</strong><span data-es=" — Hecho para quienes valoran su privacidad." data-en=" — Built for those who value their privacy."> — Hecho para quienes valoran su privacidad.</span></p>
+  <a href="#" onclick="copyContact(event)">mediabox.app.contact@gmail.com</a>
+</footer>
+
+<script>
+  // ══════════════════════════════════════════════════════════
+  // CONFIG — cambia estos valores cuando tengas el repo listo
+  // ══════════════════════════════════════════════════════════
+  const GITHUB_USER = 'gatuntv';
+  const GITHUB_REPO = 'MediaBox';
+
+  // Links de descarga directa
+  const DOWNLOAD_URLS = {
+    'windows-installer': 'https://github.com/gatuntv/MediaBox/releases/download/v1.0.0/MediaBox.Setup.1.0.0.exe',
+    'windows-portable':  'https://github.com/gatuntv/MediaBox/releases/download/v1.0.0/MediaBox.Setup.1.0.0.exe',
+    'android-play':      'proximamente',
+    'android-apk':       'https://github.com/gatuntv/MediaBox/releases/download/v1.0.0/MediaBox-1.0.0.apk',
+    'tv-store':          'proximamente',
+    'tv-apk':            'proximamente',
+  };
+  // ══════════════════════════════════════════════════════════
+
+  // ── Descarga directa con conteo local ─────────────────────
+  function handleDownload(e, btn) {
+    e.preventDefault();
+    const platform = btn.dataset.platform;
+    const url = DOWNLOAD_URLS[platform] || btn.dataset.url;
+
+    if (!url || url === '#' || url === 'proximamente') {
+      const msgs = {
+        'android-play': currentLang === 'es' ? '🕐 Próximamente en Google Play' : '🕐 Coming soon to Google Play',
+        'tv-store':     currentLang === 'es' ? '🕐 Smart TV — Próximamente' : '🕐 Smart TV — Coming soon',
+        'tv-apk':       currentLang === 'es' ? '🕐 Smart TV — Próximamente' : '🕐 Smart TV — Coming soon',
+      };
+      showToast(msgs[platform] || (currentLang === 'es' ? '🕐 Próximamente disponible' : '🕐 Coming soon'));
+      return;
+    }
+
+    // Incrementar contador local
+    const key = 'mb_dl_count';
+    const count = parseInt(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, count);
+    updateDownloadStat();
+
+    // Iniciar descarga real
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    showToast(currentLang === 'es' ? '⬇ Descarga iniciada' : '⬇ Download started');
+  }
+
+  // ── Obtener descargas reales de GitHub Releases ────────────
+  async function fetchGitHubDownloads() {
+    if (GITHUB_USER === 'TU_USUARIO') return null; // no configurado aún
+    try {
+      const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases`, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (!res.ok) return null;
+      const releases = await res.json();
+      let total = 0;
+      releases.forEach(r => r.assets.forEach(a => total += a.download_count));
+      return total;
+    } catch { return null; }
+  }
+
+  function fmtNum(n) {
+    if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
+    if (n >= 1000)    return (n/1000).toFixed(1).replace('.0','') + 'k';
+    return n.toString();
+  }
+
+  function updateDownloadStat() {
+    const local = parseInt(localStorage.getItem('mb_dl_count') || '0');
+    const gh = parseInt(localStorage.getItem('mb_gh_dl') || '0');
+    const total = gh + local;
+    const el = document.getElementById('stat-downloads');
+    if (el) el.textContent = total > 0 ? fmtNum(total) : '0';
+  }
+
+  (async () => {
+    const gh = await fetchGitHubDownloads();
+    if (gh !== null) localStorage.setItem('mb_gh_dl', gh);
+    updateDownloadStat();
+  })();
+
+  // ── Sistema de Calificación ────────────────────────────────
+  const RATING_KEY  = 'mb_ratings';   // array de votos en localStorage
+  const MY_VOTE_KEY = 'mb_my_vote';   // voto del usuario actual
+
+  let hoveredStar  = 0;
+  let selectedStar = 0;
+
+  function getRatings() {
+    try { return JSON.parse(localStorage.getItem(RATING_KEY) || '[]'); } catch { return []; }
+  }
+
+  function saveRating(val) {
+    const ratings = getRatings();
+    const prev = localStorage.getItem(MY_VOTE_KEY);
+    if (prev) {
+      // actualizar voto anterior
+      const idx = ratings.indexOf(parseInt(prev));
+      if (idx !== -1) ratings.splice(idx, 1);
+    }
+    ratings.push(val);
+    localStorage.setItem(RATING_KEY, JSON.stringify(ratings));
+    localStorage.setItem(MY_VOTE_KEY, val);
+  }
+
+  function calcAvg(ratings) {
+    if (!ratings.length) return null;
+    return (ratings.reduce((a,b) => a+b, 0) / ratings.length);
+  }
+
+  function renderRatingSummary() {
+    const ratings = getRatings();
+    const avg = calcAvg(ratings);
+    const avgEl   = document.getElementById('avg-display');
+    const votesEl = document.getElementById('votes-display');
+    const statEl  = document.getElementById('stat-rating');
+
+    if (avg !== null) {
+      const fmt = avg.toFixed(1);
+      avgEl.textContent   = '★ ' + fmt;
+      statEl.textContent  = fmt + '/5';
+    } else {
+      avgEl.textContent  = '—';
+      statEl.textContent = '?/?';
+    }
+    votesEl.textContent = ratings.length;
+  }
+
+  function paintStars(val) {
+    document.querySelectorAll('.star').forEach(s => {
+      const sv = parseInt(s.dataset.val);
+      s.classList.toggle('filled', sv <= val);
+      s.classList.toggle('hov', false);
+    });
+  }
+
+  function initStars() {
+    const myVote = parseInt(localStorage.getItem(MY_VOTE_KEY) || '0');
+    selectedStar = myVote;
+    paintStars(myVote);
+    renderRatingSummary();
+
+    const msgEl = document.getElementById('rating-msg');
+    const btn   = document.getElementById('rate-btn');
+
+    if (myVote) {
+      msgEl.textContent = currentLang === 'es'
+        ? '✓ Ya has valorado — puedes cambiarlo'
+        : '✓ Already rated — you can change it';
+    }
+
+    document.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('mouseenter', () => {
+        hoveredStar = parseInt(star.dataset.val);
+        document.querySelectorAll('.star').forEach(s => {
+          s.classList.toggle('hov', parseInt(s.dataset.val) <= hoveredStar);
+          s.classList.toggle('filled', false);
+        });
+      });
+      star.addEventListener('mouseleave', () => {
+        hoveredStar = 0;
+        paintStars(selectedStar);
+      });
+      star.addEventListener('click', () => {
+        selectedStar = parseInt(star.dataset.val);
+        paintStars(selectedStar);
+        btn.style.display = 'flex';
+        msgEl.textContent = '';
+      });
+    });
+  }
+
+  function submitRating() {
+    if (!selectedStar) return;
+    saveRating(selectedStar);
+    renderRatingSummary();
+    const msgEl = document.getElementById('rating-msg');
+    const btn   = document.getElementById('rate-btn');
+    msgEl.textContent = currentLang === 'es'
+      ? '🎉 ¡Gracias por tu valoración!'
+      : '🎉 Thanks for your rating!';
+    btn.style.display = 'none';
+    // también actualizar el stat en el hero
+    renderRatingSummary();
+  }
+
+  document.addEventListener('DOMContentLoaded', initStars);
+
+  // ── Mobile menu ────────────────────────────────────────────
+  document.getElementById('menu-toggle').addEventListener('click', () => {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  });
+  function closeMobileMenu() { document.getElementById('mobile-menu').classList.remove('open'); }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.inst-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.inst-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Language system ────────────────────────────────────────
+  let currentLang = 'es';
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim().toLowerCase() === lang);
+    });
+    document.querySelectorAll('[data-es][data-en]').forEach(el => {
+      el.textContent = el.getAttribute('data-' + lang);
+    });
+    updateBanner();
+  }
+
+  // ── Device detection ───────────────────────────────────────
+  const bannerMap = {
+    tv:      { es: 'Smart TV detectado — versión optimizada para televisor',    en: 'Smart TV detected — optimized TV version' },
+    android: { es: 'Android detectado — descarga directo a tu dispositivo',     en: 'Android detected — download directly to your device' },
+    ios:     { es: 'iPhone / iPad detectado',                                   en: 'iPhone / iPad detected' },
+    mac:     { es: 'Mac detectado — descarga la versión para macOS',           en: 'Mac detected — download the macOS version' },
+    windows: { es: 'Windows detectado — descarga el instalador',               en: 'Windows detected — download the installer' },
+    linux:   { es: 'Linux detectado — elige tu formato de paquete',           en: 'Linux detected — choose your package format' },
+    default: { es: 'Elige tu plataforma y descarga Media Box',                en: 'Choose your platform and download Media Box' }
+  };
+  let detectedDevice = 'default';
+
+  function updateBanner() {
+    document.getElementById('banner-text').textContent = bannerMap[detectedDevice][currentLang];
+  }
+
+  (function() {
+    const ua = navigator.userAgent;
+    const isTV      = /TV|SmartTV|WebOS|Tizen|HbbTV|googletv|crkey/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua) && window.screen.width >= 1280);
+    const isAndroid = /Android/i.test(ua) && /Mobile/i.test(ua);
+    const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+    const isMac     = /Macintosh/i.test(ua) && !isIOS;
+    const isWindows = /Windows/i.test(ua);
+    const isLinux   = /Linux/i.test(ua) && !isAndroid && !isTV;
+
+    let cardId = null;
+    if      (isTV)      { detectedDevice = 'tv';      cardId = 'card-tv'; document.body.classList.add('is-tv'); }
+    else if (isAndroid) { detectedDevice = 'android'; cardId = 'card-android'; }
+    else if (isIOS)     { detectedDevice = 'ios'; }
+    else if (isMac)     { detectedDevice = 'mac';     cardId = 'card-macos'; }
+    else if (isWindows) { detectedDevice = 'windows'; cardId = 'card-windows'; }
+    else if (isLinux)   { detectedDevice = 'linux';   cardId = 'card-linux'; }
+
+    updateBanner();
+
+    if (cardId) {
+      var card = document.getElementById(cardId);
+      if (card) {
+        card.classList.add('detected');
+        var tag = document.createElement('div');
+        tag.className = 'detected-label';
+        tag.setAttribute('data-es', 'Tu dispositivo');
+        tag.setAttribute('data-en', 'Your device');
+        tag.textContent = 'Tu dispositivo';
+        card.prepend(tag);
+        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 900);
+      }
+    }
+  })();
+
+  function smoothScroll(e, id) {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (!el) return;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+  }
+
+  function copyContact(e) {
+    e.preventDefault();
+    const email = 'mediabox.app.contact@gmail.com';
+    const msg = currentLang === 'es' ? 'Email copiado: ' : 'Email copied: ';
+    navigator.clipboard.writeText(email).then(() => showToast(msg + email)).catch(() => showToast(email));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
+  }
+
+  const animEls = document.querySelectorAll('.feature-card, .platform-card, .stat');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(en => { if (en.isIntersecting) { en.target.style.animation = 'fadeUp 0.45s ease both'; obs.unobserve(en.target); } });
+  }, { threshold: 0.12 });
+  animEls.forEach((el, i) => { el.style.opacity = '0'; el.style.animationDelay = (i % 5) * 0.07 + 's'; obs.observe(el); });
+</script>
+
+<div id="toast" style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e2a3a;border:1px solid rgba(59,130,246,0.3);color:#e8eaf0;padding:10px 20px;border-radius:10px;font-size:0.85rem;opacity:0;transition:all 0.3s ease;z-index:999;pointer-events:none;white-space:nowrap;">
+  Email copiado al portapapeles
+</div>
+</body>
+</html>
